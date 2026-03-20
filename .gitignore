@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Env / secrets
+.env
+.env.*
+frontend/.env
+backend/.env
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Large local data files
+numbers.csv
+output.csv
