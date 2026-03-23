@@ -4,3 +4,12 @@ supabase
 python-dotenv
 pydantic
 PyJWT>=2.8.0
+python-multipart
+werkzeug
+requests
+numpy
+reportlab
+gtts
+deep-translator
+moviepy
+openai-whisper

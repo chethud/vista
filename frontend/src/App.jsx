@@ -10,6 +10,7 @@ import Users from "./pages/Users";
 import UserProfile from "./pages/UserProfile";
 import Messages from "./pages/Messages";
 import Chat from "./pages/Chat";
+import Multilingo from "./pages/Multilingo";
 
 export default function App() {
   const { supabase, session, authReady } = useAuth();
@@ -221,6 +222,21 @@ export default function App() {
             <LoadingGate />
           ) : (
             <Chat />
+          )
+        }
+      />
+
+      <Route
+        path="/translate"
+        element={
+          !authReady ? (
+            <LoadingGate />
+          ) : !session ? (
+            <Navigate replace to="/login" />
+          ) : profileLoading ? (
+            <LoadingGate />
+          ) : (
+            <Multilingo />
           )
         }
       />

@@ -25,3 +25,7 @@ Thumbs.db
 # Large local data files
 numbers.csv
 output.csv
+
+# MultiLingo uploads / generated media
+backend/static/uploads/
+backend/static/outputs/

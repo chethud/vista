@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MultiLingo AI — Indian Languages</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="multilingo.css">
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-indian sticky-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold fs-3" href="#" onclick="showSection('hero'); return false;">
+        <i class="fas fa-language me-2"></i>MultiLingo AI
+        <small class="d-block fs-6">Indian Languages</small>
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="#" onclick="showSection('hero'); return false;"><i class="fas fa-home me-1"></i> Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="#" onclick="showSection('upload'); return false;"><i class="fas fa-upload me-1"></i> Upload</a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <div id="heroSection" class="hero-section">
+    <div class="container py-5">
+      <div class="row align-items-center min-vh-100">
+        <div class="col-lg-6">
+          <h1 class="display-4 fw-bold mb-4 text-white">Translate to <span class="text-warning">Indian Languages</span></h1>
+          <p class="lead text-white-50 mb-4">English audio/video → Hindi, Kannada, Tamil, Telugu (Whisper + Translate + gTTS).</p>
+          <button class="btn btn-light btn-lg me-2" onclick="showSection('upload')"><i class="fas fa-upload me-2"></i>Start</button>
+        </div>
+        <div class="col-lg-6">
+          <div class="row g-3">
+            <div class="col-md-6"><div class="language-card p-4 text-center bg-white rounded-3 shadow"><span class="fs-2">🇮🇳</span><div class="fw-bold">हिंदी</div><small>Hindi</small></div></div>
+            <div class="col-md-6"><div class="language-card p-4 text-center bg-white rounded-3 shadow"><span class="fs-2">🇮🇳</span><div class="fw-bold">ಕನ್ನಡ</div><small>Kannada</small></div></div>
+            <div class="col-md-6"><div class="language-card p-4 text-center bg-white rounded-3 shadow"><span class="fs-2">🇮🇳</span><div class="fw-bold">தமிழ்</div><small>Tamil</small></div></div>
+            <div class="col-md-6"><div class="language-card p-4 text-center bg-white rounded-3 shadow"><span class="fs-2">🇮🇳</span><div class="fw-bold">తెలుగు</div><small>Telugu</small></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="uploadSection" class="upload-section py-5 d-none">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <h2 class="text-center mb-4">Upload English audio or video</h2>
+          <div class="card shadow border-0 p-4">
+            <form id="uploadForm" enctype="multipart/form-data">
+              <div class="upload-zone border border-2 border-dashed rounded-4 p-5 text-center" id="uploadZone">
+                <i class="fas fa-cloud-upload-alt fa-3x text-warning mb-3"></i>
+                <h4>Drop file here or click</h4>
+                <p class="text-muted small">MP3, WAV, FLAC, M4A, MP4, MOV, MKV, WebM — max 500MB</p>
+                <input type="file" id="fileInput" name="file" accept=".mp3,.wav,.flac,.m4a,.ogg,.mp4,.avi,.mov,.mkv,.webm" hidden>
+              </div>
+              <div id="filePreview" class="file-preview mt-3 p-3 border rounded d-none">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="file-icon rounded bg-warning text-white p-3"><i class="fas fa-file"></i></div>
+                  <div class="flex-grow-1">
+                    <div class="file-name fw-bold">—</div>
+                    <div class="file-size text-muted small">—</div>
+                    <span class="badge bg-primary file-type-badge">Audio</span>
+                  </div>
+                  <button type="button" class="btn btn-outline-danger btn-sm" id="removeFile"><i class="fas fa-times"></i></button>
+                </div>
+              </div>
+              <div class="mt-4">
+                <label class="form-label fw-semibold" for="targetLanguage">Target language</label>
+                <select class="form-select" id="targetLanguage" name="target_language">
+                  <option value="hi" selected>🇮🇳 हिंदी (Hindi)</option>
+                  <option value="kn">🇮🇳 ಕನ್ನಡ (Kannada)</option>
+                  <option value="ta">🇮🇳 தமிழ் (Tamil)</option>
+                  <option value="te">🇮🇳 తెలుగు (Telugu)</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-warning btn-lg w-100 mt-4" id="submitBtn" disabled>
+                <span class="btn-text"><i class="fas fa-language me-2"></i>Start translation</span>
+                <span class="btn-spinner d-none"><span class="spinner-border spinner-border-sm me-2"></span>Uploading…</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="processingSection" class="processing-status py-5 d-none">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4><i class="fas fa-cogs fa-spin text-warning me-2"></i>Processing</h4>
+            <small class="text-muted">Elapsed: <span id="elapsedTime">00:00</span></small>
+          </div>
+          <div class="progress mb-2" style="height:12px;">
+            <div class="progress-bar bg-warning" id="progressBar" style="width:0%"></div>
+          </div>
+          <div class="d-flex justify-content-between small mb-4">
+            <span id="progressPercentage">0%</span>
+            <span id="progressMessage">Initializing…</span>
+          </div>
+          <div class="row g-2 text-center small" id="stepsRow">
+            <div class="col step" id="step1"><i class="fas fa-microphone d-block mb-1"></i>ASR</div>
+            <div class="col step" id="step2"><i class="fas fa-language d-block mb-1"></i>Translate</div>
+            <div class="col step" id="step3"><i class="fas fa-volume-up d-block mb-1"></i>TTS</div>
+            <div class="col step" id="step4"><i class="fas fa-video d-block mb-1"></i>Video</div>
+            <div class="col step" id="step5"><i class="fas fa-file-pdf d-block mb-1"></i>Reports</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultSection" class="result-section py-5 d-none">
+    <div class="container">
+      <div class="text-center mb-4">
+        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+        <h2>Translation complete</h2>
+        <p class="text-muted">Download your files below.</p>
+      </div>
+      <div class="row g-3 mb-4" id="summaryCards"></div>
+      <div id="textComparison" class="mb-4 d-none">
+        <h5 class="mb-3">Text preview</h5>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="card h-100"><div class="card-header">English</div><div class="card-body small" style="max-height:220px;overflow:auto" id="originalText"></div></div>
+          </div>
+          <div class="col-md-6">
+            <div class="card h-100"><div class="card-header"><span id="translatedLanguageName">Indian</span></div><div class="card-body small" style="max-height:220px;overflow:auto" id="translatedText"></div></div>
+          </div>
+        </div>
+      </div>
+      <div id="downloadSection" class="mb-4 d-none">
+        <h5 class="mb-3">Downloads</h5>
+        <div class="row g-3" id="downloadCards"></div>
+      </div>
+      <div class="text-center d-none" id="resultActions">
+        <button class="btn btn-success me-2" type="button" onclick="downloadAll()"><i class="fas fa-download me-1"></i>Download all</button>
+        <button class="btn btn-outline-primary" type="button" onclick="showSection('upload')">Another file</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-dark text-light py-4 mt-5">
+    <div class="container text-center">
+      <div class="row">
+        <div class="col-md-6"><h5>MultiLingo AI</h5><p class="mb-0 small">Indian languages</p></div>
+        <div class="col-md-6"><p class="mb-0 small">Hindi • Kannada • Tamil • Telugu</p></div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API_BASE = window.location.origin;
+    let currentTaskId = null;
+    let startTime = null;
+    let timerInterval = null;
+    let currentStatus = null;
+
+    const languages = {
+      hi: "🇮🇳 हिंदी (Hindi)",
+      kn: "🇮🇳 ಕನ್ನಡ (Kannada)",
+      ta: "🇮🇳 தமிழ் (Tamil)",
+      te: "🇮🇳 తెలుగు (Telugu)",
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setupFileUpload();
+      setupFormSubmission();
+      showSection("hero");
+    });
+
+    function showSection(section) {
+      const hero = document.getElementById("heroSection");
+      const upload = document.getElementById("uploadSection");
+      const proc = document.getElementById("processingSection");
+      const res = document.getElementById("resultSection");
+      [hero, upload, proc, res].forEach((el) => el && el.classList.add("d-none"));
+      if (section === "hero") hero && hero.classList.remove("d-none");
+      if (section === "upload") upload && upload.classList.remove("d-none");
+      if (section === "processing") proc && proc.classList.remove("d-none");
+      if (section === "result") res && res.classList.remove("d-none");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function setupFileUpload() {
+      const zone = document.getElementById("uploadZone");
+      const input = document.getElementById("fileInput");
+      const preview = document.getElementById("filePreview");
+      const removeBtn = document.getElementById("removeFile");
+      const submitBtn = document.getElementById("submitBtn");
+      if (!zone || !input || !preview || !submitBtn) return;
+
+      zone.addEventListener("click", () => input.click());
+      zone.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("drag-over"); });
+      zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
+      zone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        zone.classList.remove("drag-over");
+        if (e.dataTransfer.files.length) handleFileSelect(e.dataTransfer.files[0]);
+      });
+      input.addEventListener("change", (e) => {
+        if (e.target.files.length) handleFileSelect(e.target.files[0]);
+      });
+      removeBtn.addEventListener("click", () => {
+        input.value = "";
+        preview.classList.add("d-none");
+        zone.classList.remove("d-none");
+        submitBtn.disabled = true;
+      });
+    }
+
+    function handleFileSelect(file) {
+      const maxSize = 500 * 1024 * 1024;
+      if (!file.type.startsWith("audio/") && !file.type.startsWith("video/")) {
+        alert("Please choose an audio or video file.");
+        return;
+      }
+      if (file.size > maxSize) {
+        alert("Max 500MB.");
+        return;
+      }
+      document.querySelector(".file-name").textContent = file.name;
+      document.querySelector(".file-size").textContent = formatFileSize(file.size);
+      const badge = document.querySelector(".file-type-badge");
+      const isVideo = file.type.startsWith("video/");
+      badge.textContent = isVideo ? "Video" : "Audio";
+      badge.className = "badge " + (isVideo ? "bg-success" : "bg-primary") + " file-type-badge";
+      document.getElementById("uploadZone").classList.add("d-none");
+      document.getElementById("filePreview").classList.remove("d-none");
+      document.getElementById("submitBtn").disabled = false;
+    }
+
+    function setupFormSubmission() {
+      document.getElementById("uploadForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const file = fd.get("file");
+        if (!file || !file.size) {
+          alert("Select a file.");
+          return;
+        }
+        const submitBtn = document.getElementById("submitBtn");
+        submitBtn.querySelector(".btn-text").classList.add("d-none");
+        submitBtn.querySelector(".btn-spinner").classList.remove("d-none");
+        submitBtn.disabled = true;
+        showSection("processing");
+        startTime = Date.now();
+        startTimer();
+        fetch(API_BASE + "/process", { method: "POST", body: fd })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.task_id) {
+              currentTaskId = data.task_id;
+              pollStatus();
+            } else throw new Error(data.detail || data.error || "Upload failed");
+          })
+          .catch((err) => {
+            alert(err.message || String(err));
+            showSection("upload");
+            submitBtn.disabled = false;
+            submitBtn.querySelector(".btn-text").classList.remove("d-none");
+            submitBtn.querySelector(".btn-spinner").classList.add("d-none");
+          });
+      });
+    }
+
+    function pollStatus() {
+      if (!currentTaskId) return;
+      fetch(API_BASE + "/status/" + currentTaskId)
+        .then((r) => r.json())
+        .then((data) => {
+          updateProgress(data);
+          if (data.status === "completed") {
+            currentStatus = data;
+            showResults(data);
+          } else if (data.status === "error") {
+            alert(data.message || "Failed");
+            showSection("upload");
+          } else if (data.status === "processing") {
+            setTimeout(pollStatus, 2000);
+          } else if (data.status === "not_found") {
+            setTimeout(pollStatus, 2000);
+          } else {
+            setTimeout(pollStatus, 2000);
+          }
+        })
+        .catch(() => setTimeout(pollStatus, 5000));
+    }
+
+    function updateProgress(data) {
+      const p = data.progress || 0;
+      const bar = document.getElementById("progressBar");
+      const pct = document.getElementById("progressPercentage");
+      const msg = document.getElementById("progressMessage");
+      if (bar) bar.style.width = p + "%";
+      if (pct) pct.textContent = p + "%";
+      if (msg) msg.textContent = data.message || "…";
+      document.querySelectorAll("#stepsRow .step").forEach((step, i) => {
+        const thr = (i + 1) * 20;
+        step.classList.remove("active", "completed");
+        if (p >= thr) step.classList.add("completed");
+        else if (p >= thr - 20) step.classList.add("active");
+      });
+    }
+
+    function showResults(data) {
+      stopTimer();
+      showSection("result");
+      const sc = document.getElementById("summaryCards");
+      sc.innerHTML =
+        '<div class="col-md-3"><div class="card p-3 text-center"><div class="small text-muted">Time</div><div class="fw-bold">' +
+        (data.processing_time != null ? data.processing_time.toFixed(1) + "s" : "—") +
+        '</div></div></div>' +
+        '<div class="col-md-3"><div class="card p-3 text-center"><div class="small text-muted">Language</div><div class="fw-bold">' +
+        (languages[data.target_language] || "—") +
+        '</div></div></div>' +
+        '<div class="col-md-3"><div class="card p-3 text-center"><div class="small text-muted">Files</div><div class="fw-bold">' +
+        (data.outputs ? data.outputs.length : 0) +
+        '</div></div></div>' +
+        '<div class="col-md-3"><div class="card p-3 text-center"><div class="small text-muted">Status</div><div class="fw-bold text-success">Done</div></div></div>';
+
+      if (data.original_text && data.translated_text) {
+        document.getElementById("textComparison").classList.remove("d-none");
+        document.getElementById("originalText").textContent =
+          data.original_text.length > 800 ? data.original_text.slice(0, 800) + "…" : data.original_text;
+        document.getElementById("translatedText").textContent =
+          data.translated_text.length > 800 ? data.translated_text.slice(0, 800) + "…" : data.translated_text;
+        document.getElementById("translatedLanguageName").textContent =
+          languages[data.target_language] || "Translation";
+      }
+
+      if (data.outputs && data.outputs.length) {
+        document.getElementById("downloadSection").classList.remove("d-none");
+        document.getElementById("resultActions").classList.remove("d-none");
+        document.getElementById("downloadCards").innerHTML = data.outputs
+          .map(
+            (o) =>
+              '<div class="col-md-6 col-lg-4"><div class="card h-100 p-3">' +
+              "<div class=\"fw-bold small\">" +
+              (o.description || o.type) +
+              '</div><div class="text-muted small text-break">' +
+              o.filename +
+              '</div><a class="btn btn-outline-primary btn-sm mt-2" href="' +
+              API_BASE +
+              "/download/" +
+              currentTaskId +
+              "/" +
+              encodeURIComponent(o.filename) +
+              '">Download</a></div></div>'
+          )
+          .join("");
+      }
+    }
+
+    function downloadAll() {
+      if (!currentStatus || !currentStatus.outputs) return;
+      currentStatus.outputs.forEach((o, i) => {
+        setTimeout(() => {
+          const a = document.createElement("a");
+          a.href = API_BASE + "/download/" + currentTaskId + "/" + encodeURIComponent(o.filename);
+          a.download = o.filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }, i * 400);
+      });
+    }
+
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        if (!startTime) return;
+        const s = Math.floor((Date.now() - startTime) / 1000);
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        const el = document.getElementById("elapsedTime");
+        if (el) el.textContent = String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0");
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes) return "0 B";
+      const k = 1024;
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + ["B", "KB", "MB", "GB"][i];
+    }
+  </script>
+</body>
+</html>

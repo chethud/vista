@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 const ITEMS = [
   { to: "/home", label: "Home", icon: "home" },
   { to: "/users", label: "Explore", icon: "search" },
+  { to: "/translate", label: "Translate", icon: "translate" },
   { to: "/messages", label: "Chat", icon: "chat" },
   { to: "/profile", label: "Profile", icon: "user" },
   { to: "/settings", label: "Settings", icon: "gear" },
@@ -21,6 +22,13 @@ function Icon({ kind }) {
       <svg viewBox="0 0 24 24" aria-hidden>
         <circle cx="11" cy="11" r="6.5" />
         <path d="m16 16 4.5 4.5" />
+      </svg>
+    );
+  }
+  if (kind === "translate") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden>
+        <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L1 17l5.5-5.5 1.5 1.5z" />
       </svg>
     );
   }

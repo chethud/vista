@@ -1,0 +1,18 @@
+/* MultiLingo UI — theme from your Bootstrap template (condensed) */
+:root {
+  --indian-orange: #ff6b35;
+  --indian-green: #138808;
+  --gradient-indian: linear-gradient(135deg, #ff6b35 0%, #138808 50%, #4f46e5 100%);
+}
+body { font-family: Poppins, system-ui, sans-serif; background: #f8fafc; }
+.bg-gradient-indian { background: var(--gradient-indian) !important; }
+.hero-section {
+  background: var(--gradient-indian);
+  min-height: 100vh;
+}
+.hero-section.d-none { display: none !important; }
+.upload-zone.drag-over { border-color: var(--indian-orange) !important; background: rgba(255,107,53,.06); }
+#stepsRow .step { padding: 8px; border-radius: 8px; background: #f9fafb; }
+#stepsRow .step.active { background: rgba(255,107,53,.12); border: 1px solid var(--indian-orange); }
+#stepsRow .step.completed { background: rgba(19,136,8,.1); border: 1px solid var(--indian-green); }
+.file-preview.d-none { display: none !important; }

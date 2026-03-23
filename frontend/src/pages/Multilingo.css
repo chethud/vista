@@ -1,0 +1,186 @@
+/* MultiLingo — scoped so Vista themes still work */
+.ml-page {
+  width: min(900px, 100%);
+}
+
+.ml-hero {
+  background: linear-gradient(135deg, #ff6b35 0%, #138808 45%, #4f46e5 100%);
+  border-radius: 20px;
+  padding: 28px 24px;
+  margin-bottom: 20px;
+  color: #fff;
+  box-shadow: var(--shadow);
+}
+
+.ml-hero h1 {
+  margin: 0 0 12px 0;
+  font-size: 1.65rem;
+  line-height: 1.25;
+}
+
+.ml-hero p {
+  margin: 0 0 16px 0;
+  opacity: 0.92;
+  font-size: 0.95rem;
+}
+
+.ml-lang-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
+@media (min-width: 520px) {
+  .ml-lang-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.ml-lang-tile {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.ml-lang-tile .script {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.ml-dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: var(--surface-2);
+}
+
+.ml-dropzone:hover,
+.ml-dropzone.ml-drag {
+  border-color: #ff6b35;
+  background: rgba(255, 107, 53, 0.08);
+}
+
+.ml-file-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  margin-top: 14px;
+}
+
+.ml-file-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  display: grid;
+  place-items: center;
+  font-size: 1.25rem;
+}
+
+.ml-steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .ml-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.ml-step {
+  padding: 10px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  opacity: 0.65;
+}
+
+.ml-step.ml-on {
+  opacity: 1;
+  border-color: #ff6b35;
+  background: rgba(255, 107, 53, 0.12);
+}
+
+.ml-step.ml-done {
+  opacity: 1;
+  border-color: #138808;
+  background: rgba(19, 136, 8, 0.12);
+}
+
+.ml-download-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ml-download-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background: var(--surface-2);
+}
+
+.ml-download-card a {
+  display: inline-block;
+  margin-top: 10px;
+}
+
+.ml-text-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .ml-text-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ml-text-preview {
+  max-height: 200px;
+  overflow: auto;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ml-topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.ml-progress-track {
+  height: 10px;
+  border-radius: 6px;
+  background: var(--border);
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.ml-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b35, #f7931e);
+  transition: width 0.4s ease;
+}
