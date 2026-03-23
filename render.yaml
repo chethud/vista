@@ -1,0 +1,19 @@
+# Render Blueprint — Web Service for the FastAPI backend.
+# Connect this repo in Render → New → Blueprint, or create a Web Service manually with the same settings.
+#
+# Set environment variables in the Render dashboard (do not commit secrets):
+#   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_JWT_SECRET
+#   CORS_ORIGINS=https://YOUR_APP.vercel.app,http://127.0.0.1:5173
+#
+# MultiLingo (Whisper/MoviePy) needs a large plan + disk; omit or use a separate worker if needed.
+
+services:
+  - type: web
+    name: vista-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.4"

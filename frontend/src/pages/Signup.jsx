@@ -1,46 +1,61 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
+import AuthLayout from "../components/AuthLayout";
 import GoogleSignInButton from "../components/GoogleSignInButton";
+
+function isValidEmail(s) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+}
 
 export default function Signup() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [info, setInfo] = useState(null);
 
-  const signup = async () => {
+  const signup = async (e) => {
+    e?.preventDefault();
+    setError(null);
+    setInfo(null);
+    if (!supabase) {
+      setError("Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to frontend/.env");
+      return;
+    }
+    const em = email.trim();
+    if (!em || !isValidEmail(em)) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
     try {
       setLoading(true);
-      if (!supabase) {
-        alert(
-          "Supabase is not configured. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in frontend/.env"
-        );
-        return;
-      }
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        // Show more details so we can debug DB trigger/RLS issues.
+      const { error: err } = await supabase.auth.signUp({ email: em, password });
+      if (err) {
         const msg = [
-          error.message || "Signup failed",
-          error.code ? `code: ${error.code}` : null,
-          error.status ? `status: ${error.status}` : null,
-          error.details ? `details: ${error.details}` : null,
-          error.hint ? `hint: ${error.hint}` : null,
-          error
-            ? `raw: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}`
-            : null,
+          err.message || "Signup failed",
+          err.hint ? `Hint: ${err.hint}` : null,
         ]
           .filter(Boolean)
-          .join("\n");
-        console.error("Signup error:", error);
-        alert(msg);
+          .join(" ");
+        setError(msg);
+        console.error("Signup error:", err);
         return;
       }
-      alert("Check your email");
-      navigate("/login");
-    } catch (e) {
-      alert(e?.message || "Signup failed");
+      setInfo("Check your email to confirm your account, then you can log in.");
+      setTimeout(() => navigate("/login"), 2500);
+    } catch (err) {
+      setError(err?.message || "Signup failed");
     } finally {
       setLoading(false);
     }
@@ -48,67 +63,78 @@ export default function Signup() {
 
   if (!supabase) {
     return (
-      <div className="app-shell app-shell-home">
-        <div className="ig-shell auth-shell">
-          <div className="ig-feed-main auth-screen">
-        <div className="auth-card auth-card-premium">
-          <h2 className="title">Signup</h2>
-          <p className="error-text">
-          Supabase is not configured. Check `frontend/.env` for `VITE_SUPABASE_URL` and
-          `VITE_SUPABASE_ANON_KEY`.
-          </p>
-        </div>
-          </div>
-        </div>
-      </div>
+      <AuthLayout title="Create account" subtitle="Join Vista">
+        <p className="error-text">
+          Supabase is not configured. Check <code>frontend/.env</code> for <code>VITE_SUPABASE_URL</code> and{" "}
+          <code>VITE_SUPABASE_ANON_KEY</code>.
+        </p>
+      </AuthLayout>
     );
   }
 
   return (
-    <div className="app-shell app-shell-home">
-      <div className="ig-shell auth-shell">
-        <div className="ig-feed-main auth-screen">
-      <div className="auth-card auth-card-premium">
-        <h2 className="title">Create account</h2>
-        <p className="subtitle">Join and start posting with your profile.</p>
-        <GoogleSignInButton label="Continue with Google" />
-        <div className="auth-divider" aria-hidden="true">
-          <span>or email</span>
+    <AuthLayout
+      title="Create account"
+      subtitle="Use Google or sign up with email. You’ll complete your profile next."
+      footer={
+        <p className="auth-footer-text">
+          Already have an account? <Link to="/login">Log in</Link>
+        </p>
+      }
+    >
+      <GoogleSignInButton label="Continue with Google" />
+      <div className="auth-divider" aria-hidden="true">
+        <span>or email</span>
+      </div>
+      <form className="form-grid" onSubmit={signup} noValidate>
+        {error ? <p className="error-text">{error}</p> : null}
+        {info ? <p className="auth-success">{info}</p> : null}
+        <div className="field">
+          <label htmlFor="su-email">Email</label>
+          <input
+            id="su-email"
+            className="input"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
         </div>
-        <div className="form-grid">
-          <div className="field">
-            <label>Email</label>
-            <input
-              className="input"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
-          </div>
-          <div className="field">
-            <label>Password</label>
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimum 6 characters"
-            />
-          </div>
+        <div className="field">
+          <label htmlFor="su-password">Password</label>
+          <input
+            id="su-password"
+            className="input"
+            type="password"
+            autoComplete="new-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="At least 6 characters"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="su-confirm">Confirm password</label>
+          <input
+            id="su-confirm"
+            className="input"
+            type="password"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Repeat password"
+          />
         </div>
 
         <div className="btn-row">
-          <button className="btn btn-primary" onClick={signup} disabled={loading}>
-            {loading ? "Signing up..." : "Signup"}
+          <button className="btn btn-primary" type="submit" disabled={loading || !!info}>
+            {loading ? "Creating account…" : "Sign up"}
           </button>
-          <button className="btn btn-secondary" onClick={() => navigate("/login")}>
+          <Link className="btn btn-secondary" to="/login">
             Back to login
-          </button>
+          </Link>
         </div>
-      </div>
-      </div>
-      </div>
-    </div>
+      </form>
+    </AuthLayout>
   );
 }

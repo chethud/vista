@@ -26,10 +26,12 @@ function GoogleIcon() {
 }
 
 /**
- * Supabase Auth: enable Google under Dashboard → Authentication → Providers.
- * Add Site URL + Redirect URLs, e.g. http://127.0.0.1:5173/ and your production origin.
+ * Supabase Auth: enable Google under Dashboard → Authentication → Providers → Google.
+ * URL config: Site URL + Redirect URLs must include your app origin, e.g. http://127.0.0.1:5173/
+ *
+ * @param {string} [redirectPath] — path after origin (default "/") where user returns after OAuth
  */
-export default function GoogleSignInButton({ label = "Continue with Google" }) {
+export default function GoogleSignInButton({ label = "Continue with Google", redirectPath = "/" }) {
   const [loading, setLoading] = useState(false);
 
   const onGoogle = async () => {
@@ -41,10 +43,14 @@ export default function GoogleSignInButton({ label = "Continue with Google" }) {
     }
     try {
       setLoading(true);
-      const redirectTo = `${window.location.origin}/`;
+      const path = redirectPath.startsWith("/") ? redirectPath : `/${redirectPath}`;
+      const redirectTo = `${window.location.origin}${path}`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo },
+        options: {
+          redirectTo,
+          queryParams: { prompt: "select_account" },
+        },
       });
       if (error) {
         alert(error.message);
@@ -62,6 +68,7 @@ export default function GoogleSignInButton({ label = "Continue with Google" }) {
       className="btn btn-google btn-google-full"
       onClick={onGoogle}
       disabled={loading}
+      aria-busy={loading}
     >
       <GoogleIcon />
       {loading ? "Redirecting…" : label}

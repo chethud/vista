@@ -5,13 +5,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import auth, posts
+from app.core.config import CORS_ORIGINS
 from app.multilingo.routes import router as multilingo_router
 
 app = FastAPI()
 
+# Browsers: use explicit origins in production (set CORS_ORIGINS on Render). Wildcard "*" disables credentials.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

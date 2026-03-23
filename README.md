@@ -1,6 +1,6 @@
 # Vista
 
-Vista is a full-stack social-style web app: **React (Vite)** on the client, **Supabase** for authentication, database, storage, realtime messaging, and Row Level Security (RLS), plus a **FastAPI** backend that performs privileged operations (notably **posts via the service role**) while still tying actions to the logged-in user using their **Supabase access token (JWT)**.
+Vista is a full-stack social-style web app: **React (Vite)** on the client, **Supabase** for authentication, database, storage, realtime messaging, and Row Level Security (RLS), plus a **FastAPI** backend for JWT-verified APIs and optional **MultiLingo** translation. A typical **production** setup is **Vercel** (frontend) + **Render** (backend) + **Supabase** (DB/auth) — see [Deploy](#deploy-supabase--render-backend--vercel-frontend).
 
 ---
 
@@ -82,7 +82,15 @@ VITE_SUPABASE_ANON_KEY=your_anon_publishable_key
 VITE_BACKEND_URL=http://127.0.0.1:8000
 ```
 
-- **`VITE_BACKEND_URL`**: origin of the FastAPI server **without** a trailing path (the client builds paths like `/posts/`).
+See also [`frontend/.env.example`](frontend/.env.example). For **Vercel**, set the same keys in the project **Environment Variables**; use your **Render** URL for `VITE_BACKEND_URL` in production.
+
+- **`VITE_BACKEND_URL`**: origin of the FastAPI server **no trailing slash** (paths like `/process`, `/posts/` are appended in code).
+
+**Auth (login, signup, Google, password reset)**
+
+- **Routes:** `/login`, `/signup`, `/forgot-password`, `/update-password` (after email reset link).
+- **Google:** Supabase Dashboard → **Authentication** → **Providers** → **Google** (Client ID / secret from Google Cloud). Under **URL Configuration**, add **Redirect URLs** such as `http://127.0.0.1:5173/` and your production origin (OAuth returns here after Google).
+- **Password reset:** `forgot-password` emails a link to **`/update-password`** — add `http://127.0.0.1:5173/update-password` (and production) to **Redirect URLs** in the same Supabase section.
 
 ### 3. Backend — `backend/.env`
 
@@ -92,10 +100,14 @@ Create `backend/.env`:
 SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 SUPABASE_JWT_SECRET=your_jwt_secret
+CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
 ```
+
+See [`backend/.env.example`](backend/.env.example). On **Render**, set these in the service **Environment** tab (add your **Vercel** `https://…` origin(s) to `CORS_ORIGINS`, comma-separated).
 
 - **`SUPABASE_SERVICE_ROLE_KEY`**: from **Project Settings → API** (service role — **keep server-only**; never expose in the browser).
 - **`SUPABASE_JWT_SECRET`**: from **Project Settings → API → JWT Secret** (used to verify `Authorization: Bearer <access_token>`).
+- **`CORS_ORIGINS`**: browser origins allowed to call the API; required for the Vercel app to talk to Render. Defaults to local Vite ports if unset.
 
 Google sign-in and redirect URLs are documented in [`supabase/README.md`](supabase/README.md).
 
@@ -148,11 +160,77 @@ Interactive docs: **http://127.0.0.1:8000/docs** (when the server is running).
 
 ---
 
+## Deploy: Supabase + Render (backend) + Vercel (frontend)
+
+Your stack: **database & auth in Supabase**, **FastAPI on Render**, **React on Vercel**. Same codebase; only environment variables and URLs change.
+
+### A. Supabase (already your database)
+
+1. Run SQL migrations from [`supabase/README.md`](supabase/README.md) in the Supabase SQL Editor (same project for dev and prod, or use a separate prod project and run migrations there too).
+2. **Project Settings → API**: copy **Project URL**, **anon public** key (frontend), **service_role** key (backend only), **JWT Secret** (backend).
+3. **Authentication → URL Configuration**
+   - **Site URL**: your Vercel production URL, e.g. `https://your-app.vercel.app`
+   - **Redirect URLs** (add each on its own line):  
+     `http://127.0.0.1:5173/**` · `http://localhost:5173/**` · `https://your-app.vercel.app/**` · `https://your-app.vercel.app/update-password`  
+     Include **Preview** URLs if you use Vercel preview deploys (e.g. `https://your-app-git-main-xxx.vercel.app/**`).
+4. **Storage / Realtime**: already tied to this project; no extra host to configure for “database”.
+
+### B. Render (backend)
+
+1. **New → Web Service** → connect this GitHub repo.
+2. **Root Directory**: `backend`
+3. **Build**: `pip install -r requirements.txt`
+4. **Start**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`  
+   (Render injects `$PORT`.)
+5. **Environment variables** (Render → Environment):
+
+   | Key | Value |
+   |-----|--------|
+   | `SUPABASE_URL` | Same as Supabase Project URL |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Service role key (secret) |
+   | `SUPABASE_JWT_SECRET` | JWT Secret from Supabase API settings |
+   | `CORS_ORIGINS` | Comma-separated, **no spaces** after commas is OK: `https://your-app.vercel.app,http://127.0.0.1:5173` — add every Vercel production URL and preview URL you use |
+
+6. Copy the **public URL** of the service, e.g. `https://vista-backend.onrender.com` — this is your **API origin** (no path).
+
+Optional: use [`render.yaml`](render.yaml) as a Blueprint; you still must set secrets in the dashboard.
+
+**MultiLingo on Render:** Whisper + PyTorch + MoviePy + FFmpeg are heavy. Free/small instances may **OOM** or lack **FFmpeg**. For production translation, use a **larger instance**, install **FFmpeg** in the environment (Render native env or Docker), or run MultiLingo on a separate worker.
+
+### C. Vercel (frontend)
+
+1. **New Project** → import the same repo.
+2. **Root Directory**: `frontend`
+3. **Framework Preset**: Vite (or leave auto-detect).
+4. **Build Command**: `npm run build` · **Output Directory**: `dist`
+5. **Environment Variables** (Production / Preview as needed):
+
+   | Key | Value |
+   |-----|--------|
+   | `VITE_SUPABASE_URL` | Supabase Project URL |
+   | `VITE_SUPABASE_ANON_KEY` | Supabase anon public key |
+   | `VITE_BACKEND_URL` | Your Render **HTTPS** URL, e.g. `https://vista-backend.onrender.com` — **no trailing slash** |
+
+6. [`frontend/vercel.json`](frontend/vercel.json) rewrites SPA routes so `/login`, `/translate`, etc. work on refresh.
+
+After deploy, open your Vercel URL and test login, feed, and API calls that use `VITE_BACKEND_URL`.
+
+### D. Checklist
+
+- [ ] Supabase migrations applied  
+- [ ] Supabase Auth URLs include Vercel + localhost  
+- [ ] Render env vars set + service deployed  
+- [ ] `CORS_ORIGINS` on Render includes your exact Vercel origin(s) (`https://...`)  
+- [ ] Vercel env `VITE_BACKEND_URL` = Render URL  
+- [ ] Redeploy Vercel after changing env vars  
+
+---
+
 ## Security notes
 
 - **Never** put the service role key in the frontend or in public repos.
-- CORS is currently permissive (`allow_origins=["*"]` in `backend/app/main.py`) — tighten this for production (specific origins only).
-- For production, rotate keys if they leak and prefer environment-specific Supabase projects.
+- CORS uses **`CORS_ORIGINS`** in production (`backend/app/core/config.py`) — list only your real frontend origins (Vercel + local).
+- Rotate keys if they leak; use separate Supabase projects for staging vs production if you can.
 
 ---
 

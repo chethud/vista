@@ -11,6 +11,8 @@ import UserProfile from "./pages/UserProfile";
 import Messages from "./pages/Messages";
 import Chat from "./pages/Chat";
 import Multilingo from "./pages/Multilingo";
+import ForgotPassword from "./pages/ForgotPassword";
+import UpdatePassword from "./pages/UpdatePassword";
 
 export default function App() {
   const { supabase, session, authReady } = useAuth();
@@ -115,6 +117,28 @@ export default function App() {
             <Signup />
           )
         }
+      />
+
+      <Route
+        path="/forgot-password"
+        element={
+          !authReady ? (
+            <LoadingGate />
+          ) : session ? (
+            profileLoading ? (
+              <LoadingGate />
+            ) : (
+              <Navigate replace to={profileComplete ? "/home" : "/profile"} />
+            )
+          ) : (
+            <ForgotPassword />
+          )
+        }
+      />
+
+      <Route
+        path="/update-password"
+        element={!authReady ? <LoadingGate /> : <UpdatePassword />}
       />
 
       <Route
