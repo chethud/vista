@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import AppBottomNav from "../components/AppBottomNav";
 import {
   fetchMultilingoStatus,
-  getMultilingoBase,
   multilingoDownloadUrl,
   startMultilingoJob,
 } from "../api/multilingoApi";
+import { getBackendBaseUrl, UI_MESSAGES } from "../config/appConfig";
 import "./Multilingo.css";
 
 const LANGUAGES = [
@@ -32,7 +30,6 @@ function formatFileSize(bytes) {
   return `${parseFloat((bytes / k ** i).toFixed(2))} ${["B", "KB", "MB", "GB"][i]}`;
 }
 
-/** Map 0–100 progress to step index 0–4 for UI */
 function stepStates(progress) {
   return [0, 1, 2, 3, 4].map((i) => {
     const thr = (i + 1) * 20;
@@ -43,8 +40,7 @@ function stepStates(progress) {
 }
 
 export default function Multilingo() {
-  const navigate = useNavigate();
-  const [view, setView] = useState("hero"); // hero | upload | processing | result
+  const [view, setView] = useState("hero");
   const [file, setFile] = useState(null);
   const [targetLanguage, setTargetLanguage] = useState("hi");
   const [submitting, setSubmitting] = useState(false);
@@ -57,14 +53,7 @@ export default function Multilingo() {
   const fileInputRef = useRef(null);
   const dropRef = useRef(null);
 
-  const apiConfigured = (() => {
-    try {
-      getMultilingoBase();
-      return true;
-    } catch {
-      return false;
-    }
-  })();
+  const apiConfigured = !!getBackendBaseUrl();
 
   useEffect(() => {
     return () => {
@@ -187,26 +176,21 @@ export default function Multilingo() {
               <h2 className="title">MultiLingo</h2>
               <p className="subtitle">English audio/video → Hindi, Kannada, Tamil, Telugu</p>
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button type="button" className="btn btn-ghost btn-xs" onClick={() => navigate("/home")}>
-                Home
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-xs"
-                onClick={() => {
-                  setView("upload");
-                  setError(null);
-                }}
-              >
-                Upload
-              </button>
-            </div>
+            <button
+              type="button"
+              className="btn btn-secondary btn-xs"
+              onClick={() => {
+                setView("upload");
+                setError(null);
+              }}
+            >
+              Upload
+            </button>
           </div>
 
           {!apiConfigured ? (
             <p className="error-text" style={{ marginTop: 12 }}>
-              Add <code>VITE_BACKEND_URL</code> to <code>frontend/.env</code> (e.g. http://127.0.0.1:8000) and restart Vite.
+              {UI_MESSAGES.backendNotConfigured}
             </p>
           ) : null}
 
@@ -216,7 +200,7 @@ export default function Multilingo() {
             <div className="ml-hero">
               <h1>Translate to Indian languages</h1>
               <p>
-                Whisper listens in English, text is translated, then gTTS speaks the result. Videos get new audio
+                Whisper transcribes English, text is translated, then speech is synthesized. For video, new audio is
                 muxed to match length.
               </p>
               <button type="button" className="btn btn-secondary" onClick={() => setView("upload")}>
@@ -395,19 +379,19 @@ export default function Multilingo() {
                     setFile(null);
                     setTaskId(null);
                     setStatus(null);
+                    setError(null);
                     if (fileInputRef.current) fileInputRef.current.value = "";
                   }}
                 >
                   Translate another file
                 </button>
-                <button type="button" className="btn btn-ghost" onClick={() => navigate("/home")}>
-                  Back to feed
+                <button type="button" className="btn btn-ghost" onClick={() => setView("hero")}>
+                  Home
                 </button>
               </div>
             </div>
           ) : null}
         </div>
-        <AppBottomNav />
       </div>
     </div>
   );

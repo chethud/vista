@@ -3,16 +3,14 @@
  * Endpoints: POST /process, GET /status/:id, GET /download/:id/:filename
  */
 
+import { getBackendBaseUrl, requireBackendBaseUrl } from "../config/appConfig";
+
 function baseUrl() {
-  const raw = (import.meta.env.VITE_BACKEND_URL || "").trim().replace(/\/$/, "");
-  if (!raw) {
-    throw new Error("Set VITE_BACKEND_URL in frontend/.env (e.g. http://127.0.0.1:8000)");
-  }
-  return raw;
+  return requireBackendBaseUrl();
 }
 
 export function getMultilingoBase() {
-  return baseUrl();
+  return getBackendBaseUrl();
 }
 
 /**
