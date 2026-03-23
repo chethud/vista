@@ -1,281 +1,201 @@
 # Vista
 
-Vista is a full-stack social-style web app: **React (Vite)** on the client, **Supabase** for authentication, database, storage, realtime messaging, and Row Level Security (RLS), plus a **FastAPI** backend for JWT-verified APIs and optional **MultiLingo** translation. A typical **production** setup is **Vercel** (frontend) + **Render** (backend) + **Supabase** (DB/auth) — see [Deploy](#deploy-supabase--render-backend--vercel-frontend).
+Social feed app with profiles, posts, follows, likes, comments, DMs, and optional **MultiLingo** (English → Indian languages).  
+**Stack:** React (Vite) · FastAPI · Supabase (Postgres, Auth, Storage, Realtime) · deploy: **Vercel** + **Render** + Supabase.
 
 ---
 
-## How it fits together
+## Contents
+
+- [Architecture](#architecture)
+- [Repository layout](#repository-layout)
+- [Local development](#local-development)
+- [Environment variables](#environment-variables)
+- [Authentication URLs (Supabase)](#authentication-urls-supabase)
+- [Production deploy](#production-deploy)
+- [Backend API](#backend-api)
+- [Security](#security)
+- [Further reading](#further-reading)
+
+---
+
+## Architecture
 
 ```mermaid
 flowchart LR
-  subgraph browser [Browser]
-    UI[React app]
+  subgraph client [Browser]
+    UI[React]
   end
   subgraph supabase [Supabase]
-    Auth[Auth JWT]
+    Auth[Auth]
     DB[(Postgres + RLS)]
     RT[Realtime]
-    Storage[Storage buckets]
+    ST[Storage]
   end
-  subgraph backend [Your machine / server]
+  subgraph api [FastAPI on Render or local]
     API[FastAPI]
   end
-  UI -->|sign-in, profiles, follows, likes, comments, messages, storage| Auth
+  UI --> Auth
   UI --> DB
   UI --> RT
-  UI --> Storage
-  UI -->|Authorization: Bearer access_token| API
-  API -->|verify JWT HS256| Auth
-  API -->|service role client| DB
+  UI --> ST
+  UI -->|"Bearer JWT"| API
+  API -->|"verify JWT"| Auth
+  API -->|"service role"| DB
 ```
 
-| Layer | Role |
-|--------|------|
-| **Frontend** | Uses `@supabase/supabase-js` with the **anon key** for auth and most data (subject to RLS). **Posts in the UI** are loaded and created via **`frontend/src/api/postApi.js`** (direct Supabase). |
-| **Supabase Auth** | Issues the user **access_token** (JWT). The backend validates it with **`SUPABASE_JWT_SECRET`** (same secret as in Supabase → Project Settings → API). |
-| **FastAPI** | Optional parallel path: uses **`SUPABASE_SERVICE_ROLE_KEY`** to access `posts` with full privileges, while **`user_id` is taken from the JWT `sub`**. Handy for server-side rules or if you later move post writes off the anon client. The bundled React app does **not** call these routes yet—see **`frontend/src/api/backendClient.js`** (`fetchWithJwt`) to wire them. |
-| **SQL / RLS** | Migrations under `supabase/migrations/` define tables, triggers, policies, and optional realtime for chat. See [`supabase/README.md`](supabase/README.md) for the recommended apply order. |
+| Piece | Responsibility |
+|--------|------------------|
+| **React** | Supabase **anon** key for most data (RLS). Routes include `/home`, `/translate` (MultiLingo), `/messages`, etc. |
+| **Supabase** | Auth, database, storage, realtime; migrations in `supabase/migrations/`. |
+| **FastAPI** | Validates Supabase user JWTs; optional routes like `/posts/`, `/process` (MultiLingo). Uses **service role** only on the server. |
+
+Posts in the UI are implemented via **`frontend/src/api/postApi.js`** (direct Supabase). **`frontend/src/api/backendClient.js`** (`fetchWithJwt`) is available for server-backed routes.
 
 ---
 
 ## Repository layout
 
-| Path | Purpose |
-|------|---------|
-| `frontend/` | Vite + React 19, routing, UI pages; **MultiLingo** at **`/translate`** (calls FastAPI `/process`). |
-| `backend/` | FastAPI app: `GET /auth/me`, `GET/POST /posts/`, JWT middleware. |
-| `backend/static/multilingo/` | **MultiLingo AI** static UI (Bootstrap) + `POST /process`, `GET /status/{id}`, `GET /download/...`. |
-| `supabase/` | SQL migrations and [`supabase/README.md`](supabase/README.md) (schema, Google OAuth notes). |
+| Path | Description |
+|------|-------------|
+| `frontend/` | Vite + React app |
+| `backend/` | FastAPI (`uvicorn app.main:app`) |
+| `supabase/` | SQL migrations — run order in [`supabase/README.md`](supabase/README.md) |
+| `backend/static/multilingo/` | Optional static MultiLingo UI at `/ml` on the API host |
+| `render.yaml` | Render Blueprint (backend) |
+| `frontend/vercel.json` | Vercel SPA rewrites |
 
-### MultiLingo AI (English → Hindi / Kannada / Tamil / Telugu)
+### MultiLingo (optional)
 
-The backend includes a **Flask-compatible** pipeline ported to FastAPI: Whisper (English ASR) → Google Translate (`deep-translator`) → gTTS → optional **video** remux (MoviePy), plus HTML/PDF reports.
-
-- **Web UI (same origin as API):** after starting the backend, open **[http://127.0.0.1:8000/ml/](http://127.0.0.1:8000/ml/)** (trailing slash). The page uses `API_BASE = window.location.origin` so `/process`, `/status`, `/download` resolve correctly.
-- **Your long Bootstrap template:** replace [`backend/static/multilingo/index.html`](backend/static/multilingo/index.html) with your HTML, remove Jinja `{% for %}` loops (use static `<option>` tags), and at the top of the main `<script>` add `const API_BASE = window.location.origin;`, then prefix every `fetch('/process'…)`, `fetch(\`/status/${id}\`)`, and download URLs with `` `${API_BASE}` ``.
-- **Dependencies:** `pip install -r requirements.txt` (includes `openai-whisper`, `moviepy`, `gtts`, `deep-translator`, `reportlab`, etc.). **FFmpeg** must be installed on the system PATH for MoviePy video encoding.
-- **Uploads / outputs:** `backend/static/uploads/` and `backend/static/outputs/` (created at runtime).
+Pipeline: Whisper → translate (`deep-translator`) → gTTS → optional video (MoviePy). React uses **`/translate`** with `VITE_BACKEND_URL`. Heavy deps (PyTorch, FFmpeg); small Render instances may not be enough.
 
 ---
 
-## Prerequisites
+## Local development
 
-- **Node.js** (for the frontend)
-- **Python 3.10+** (for the backend)
-- A **Supabase** project (free tier is fine for development)
-
----
-
-## Configuration
-
-### 1. Supabase project
-
-Create a project, then run the SQL migrations in the order described in **[`supabase/README.md`](supabase/README.md)** (SQL Editor or Supabase CLI).
-
-### 2. Frontend — `frontend/.env`
-
-Create `frontend/.env` (do not commit real keys):
-
-```env
-VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_publishable_key
-VITE_BACKEND_URL=http://127.0.0.1:8000
-```
-
-See also [`frontend/.env.example`](frontend/.env.example). For **Vercel**, set the same keys in the project **Environment Variables**; use your **Render** URL for `VITE_BACKEND_URL` in production.
-
-- **`VITE_BACKEND_URL`**: origin of the FastAPI server **no trailing slash** (paths like `/process`, `/posts/` are appended in code).
-
-**Auth (login, signup, Google, password reset)**
-
-- **Routes:** `/login`, `/signup`, `/forgot-password`, `/update-password` (after email reset link).
-- **Google:** Supabase Dashboard → **Authentication** → **Providers** → **Google** (Client ID / secret from Google Cloud). Under **URL Configuration**, add **Redirect URLs** such as `http://127.0.0.1:5173/` and your production origin (OAuth returns here after Google).
-- **Password reset:** `forgot-password` emails a link to **`/update-password`** — add `http://127.0.0.1:5173/update-password` (and production) to **Redirect URLs** in the same Supabase section.
-
-### 3. Backend — `backend/.env`
-
-Create `backend/.env`:
-
-```env
-SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_JWT_SECRET=your_jwt_secret
-CORS_ORIGINS=http://127.0.0.1:5173,http://localhost:5173
-```
-
-See [`backend/.env.example`](backend/.env.example). On **Render**, set these in the service **Environment** tab (add your **Vercel** `https://…` origin(s) to `CORS_ORIGINS`, comma-separated).
-
-- **`SUPABASE_SERVICE_ROLE_KEY`**: from **Project Settings → API** (service role — **keep server-only**; never expose in the browser).
-- **`SUPABASE_JWT_SECRET`**: from **Project Settings → API → JWT Secret** (used to verify `Authorization: Bearer <access_token>`).
-- **`CORS_ORIGINS`**: browser origins allowed to call the API; required for the Vercel app to talk to Render. Defaults to local Vite ports if unset.
-
-Google sign-in and redirect URLs are documented in [`supabase/README.md`](supabase/README.md).
-
----
-
-## Run locally
-
-**Terminal 1 — backend**
+**Requirements:** Node.js, Python 3.10+, Supabase project.
 
 ```bash
+# Backend — from repo root
 cd backend
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
+# Windows: .venv\Scripts\activate   |  macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-**Terminal 2 — frontend**
-
 ```bash
+# Frontend — second terminal
 cd frontend
 npm install
 npm run dev
 ```
 
-Open the URL Vite prints (default **http://127.0.0.1:5173**). The app expects the backend at **`VITE_BACKEND_URL`** for JWT-backed routes.
+Open **http://127.0.0.1:5173** (Vite). API docs: **http://127.0.0.1:8000/docs**
 
 ---
 
-## Backend API (summary)
+## Environment variables
 
-| Method & path | Auth | Description |
-|---------------|------|-------------|
-| `GET /auth/me` | Bearer JWT | Returns JWT claims (debugging / verifying the token pipeline). |
-| `POST /posts/` | Bearer JWT | Creates a post; `user_id` is derived from the token, body is `content` and/or `image_url`. |
-| `GET /posts/` | Bearer JWT | Lists posts (service-role query on the server). |
+Copy examples: [`frontend/.env.example`](frontend/.env.example), [`backend/.env.example`](backend/.env.example). Never commit real secrets.
 
-Protected routes use **`HTTPBearer`**: send `Authorization: Bearer <supabase_access_token>`. To call them from React, use **`frontend/src/api/backendClient.js`** → `fetchWithJwt(...)` (reads the Supabase session and sets the header). Today the UI uses Supabase directly for posts; `fetchWithJwt` is ready for `/auth/me`, `/posts/`, or future routes.
+### Frontend (`frontend/.env`)
 
-Interactive docs: **http://127.0.0.1:8000/docs** (when the server is running).
+| Variable | Purpose |
+|----------|---------|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon (public) key |
+| `VITE_BACKEND_URL` | API origin **without** trailing slash (e.g. `http://127.0.0.1:8000` or your Render URL) |
 
----
+### Backend (`backend/.env`)
 
-## Frontend behavior (high level)
+| Variable | Purpose |
+|----------|---------|
+| `SUPABASE_URL` | Same project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key — **server only** |
+| `SUPABASE_JWT_SECRET` | Dashboard → Project Settings → API → **JWT Secret** |
+| `CORS_ORIGINS` | Comma-separated browser origins (defaults to local Vite if omitted) |
 
-- **Auth**: `AuthContext` subscribes to `supabase.auth.onAuthStateChange`, persists session in `localStorage`, and manages token refresh (with visibility-based pause/resume).
-- **Routing** (`App.jsx`): unauthenticated users go to login/signup; users without a **profile name** are sent to complete **Profile** before **Home**.
-- **Data**: Social features (including **posts** via `postApi.js`) go **directly to Supabase** with the anon client under RLS. The FastAPI post endpoints are an alternate design you can adopt by switching `postApi.js` to `fetchWithJwt("/posts/...")` if you want all post IO on the server.
-
----
-
-## Deploy: Supabase + Render (backend) + Vercel (frontend)
-
-Your stack: **database & auth in Supabase**, **FastAPI on Render**, **React on Vercel**. Same codebase; only environment variables and URLs change.
-
-### A. Supabase (already your database)
-
-1. Run SQL migrations from [`supabase/README.md`](supabase/README.md) in the Supabase SQL Editor (same project for dev and prod, or use a separate prod project and run migrations there too).
-2. **Project Settings → API**: copy **Project URL**, **anon public** key (frontend), **service_role** key (backend only), **JWT Secret** (backend).
-3. **Authentication → URL Configuration**
-   - **Site URL**: your Vercel production URL, e.g. `https://your-app.vercel.app`
-   - **Redirect URLs** (add each on its own line):  
-     `http://127.0.0.1:5173/**` · `http://localhost:5173/**` · `https://your-app.vercel.app/**` · `https://your-app.vercel.app/update-password`  
-     Include **Preview** URLs if you use Vercel preview deploys (e.g. `https://your-app-git-main-xxx.vercel.app/**`).
-4. **Storage / Realtime**: already tied to this project; no extra host to configure for “database”.
-
-### B. Render (backend)
-
-1. **New → Web Service** → connect this GitHub repo.
-2. **Root Directory**: `backend`
-3. **Build**: `pip install -r requirements.txt`
-4. **Start**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`  
-   (Render injects `$PORT`.)
-5. **Environment variables** (Render → Environment):
-
-   | Key | Value |
-   |-----|--------|
-   | `SUPABASE_URL` | Same as Supabase Project URL |
-   | `SUPABASE_SERVICE_ROLE_KEY` | Service role key (secret) |
-   | `SUPABASE_JWT_SECRET` | JWT Secret from Supabase API settings |
-   | `CORS_ORIGINS` | Comma-separated, **no spaces** after commas is OK: `https://your-app.vercel.app,http://127.0.0.1:5173` — add every Vercel production URL and preview URL you use |
-
-6. Copy the **public URL** of the service, e.g. `https://vista-backend.onrender.com` — this is your **API origin** (no path).
-
-Optional: use [`render.yaml`](render.yaml) as a Blueprint; you still must set secrets in the dashboard.
-
-**MultiLingo on Render:** Whisper + PyTorch + MoviePy + FFmpeg are heavy. Free/small instances may **OOM** or lack **FFmpeg**. For production translation, use a **larger instance**, install **FFmpeg** in the environment (Render native env or Docker), or run MultiLingo on a separate worker.
-
-### C. Vercel (frontend)
-
-1. **New Project** → import the same repo.
-2. **Root Directory**: `frontend`
-3. **Framework Preset**: Vite (or leave auto-detect).
-4. **Build Command**: `npm run build` · **Output Directory**: `dist`
-5. **Environment Variables** (Production / Preview as needed):
-
-   | Key | Value |
-   |-----|--------|
-   | `VITE_SUPABASE_URL` | Supabase Project URL |
-   | `VITE_SUPABASE_ANON_KEY` | Supabase anon public key |
-   | `VITE_BACKEND_URL` | Your Render **HTTPS** URL, e.g. `https://vista-backend.onrender.com` — **no trailing slash** |
-
-6. [`frontend/vercel.json`](frontend/vercel.json) rewrites SPA routes so `/login`, `/translate`, etc. work on refresh.
-
-After deploy, open your Vercel URL and test login, feed, and API calls that use `VITE_BACKEND_URL`.
-
-### D. Checklist
-
-- [ ] Supabase migrations applied  
-- [ ] Supabase Auth URLs include Vercel + localhost  
-- [ ] Render env vars set + service deployed  
-- [ ] `CORS_ORIGINS` on Render includes your exact Vercel origin(s) (`https://...`)  
-- [ ] Vercel env `VITE_BACKEND_URL` = Render URL  
-- [ ] Redeploy Vercel after changing env vars  
+Optional: `DEBUG=1` to log config on startup (avoid in production with sensitive logs).
 
 ---
 
-## Security notes
+## Authentication URLs (Supabase)
 
-- **Never** put the service role key in the frontend or in public repos.
-- CORS uses **`CORS_ORIGINS`** in production (`backend/app/core/config.py`) — list only your real frontend origins (Vercel + local).
-- Rotate keys if they leak; use separate Supabase projects for staging vs production if you can.
+In **Authentication → URL Configuration**:
+
+- **Site URL:** your deployed app (e.g. `https://your-app.vercel.app`).
+- **Redirect URLs:** include local dev, production, previews, and password reset, for example:  
+  `http://127.0.0.1:5173/**` · `https://your-app.vercel.app/**` · `https://your-app.vercel.app/update-password`
+
+Enable **Google** under **Providers** if you use “Continue with Google” (OAuth client from Google Cloud). Details: [`supabase/README.md`](supabase/README.md).
 
 ---
 
-## What you could use instead (alternatives)
+## Production deploy
 
-These are common swaps; pick based on hosting, team skills, and how much you want “managed auth + DB” vs rolling your own.
+Typical setup: **Supabase** (data + auth) · **Render** (FastAPI) · **Vercel** (static frontend + env-injected `VITE_*`).
 
-### Instead of FastAPI as the “BFF” for posts
+### Supabase
 
-| Alternative | When it helps |
-|-------------|----------------|
-| **Supabase client only (anon key + RLS)** | Simplest: define RLS on `posts` so users can insert/select only their rows (or public feed rules). No Python server. |
-| **Supabase Edge Functions** | Server-side logic at the edge (Deno), still close to Supabase; good for webhooks, validation, or hiding secrets. |
-| **Next.js / Remix API routes** | If you move to a full-stack JS framework and want colocated API handlers. |
-| **tRPC / GraphQL layer** | Strong typing or flexible querying over your own server. |
+1. Apply migrations ([`supabase/README.md`](supabase/README.md)).
+2. Copy API URL, anon key, service role key, JWT secret into Render/Vercel as above.
+3. Configure **Site URL** and **Redirect URLs** for your Vercel domain(s).
 
-### Instead of Supabase entirely
+### Render (backend)
 
-| Alternative | Tradeoff |
-|-------------|----------|
-| **Firebase (Auth + Firestore + Storage)** | Google ecosystem; different query/RLS model (security rules instead of SQL RLS). |
-| **Appwrite / PocketBase** | Self-hostable BaaS; smaller ecosystem than Supabase/Firebase. |
-| **Postgres + Auth provider (Clerk, Auth0, Cognito) + your API** | Maximum control; you own migrations, auth integration, and hosting. |
-| **MongoDB Atlas + Atlas App Services** | Document model; different from relational + RLS patterns used here. |
+1. New **Web Service** → repo, **Root Directory:** `backend`.
+2. **Build:** `pip install -r requirements.txt`  
+3. **Start:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. Set `SUPABASE_*`, `SUPABASE_JWT_SECRET`, and **`CORS_ORIGINS`** including every frontend origin you use (`https://your-app.vercel.app`, preview URLs, optional localhost).
 
-### Instead of validating JWTs with a shared secret in FastAPI
+Use the service **HTTPS URL** as `VITE_BACKEND_URL` on Vercel (no trailing slash).
 
-Supabase’s default user JWTs use **HS256** with the project **JWT secret** (what this repo uses). Alternatives if you redesign auth:
+### Vercel (frontend)
 
-- **JWKS / asymmetric keys** (some providers issue RS256 tokens verified with public keys).
-- **Framework-specific middleware** (e.g. official or community “Supabase + FastAPI” helpers) — same underlying idea: validate the access token and read `sub`.
+1. **Root Directory:** `frontend`
+2. **Build:** `npm run build` · **Output:** `dist`
+3. Env: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_BACKEND_URL` = Render URL.
 
-### Instead of React + Vite
+Redeploy after changing env vars. [`frontend/vercel.json`](frontend/vercel.json) keeps SPA routes working on refresh.
 
-- **Next.js** (SSR/SSG, API routes), **Remix**, **SvelteKit**, or **Vue (Nuxt)** — same backends (Supabase/FastAPI) usually work; you mainly change how env vars and routing are handled.
+### Deploy checklist
+
+- [ ] Migrations applied on Supabase  
+- [ ] Auth redirect URLs cover Vercel + localhost  
+- [ ] Render env set; `CORS_ORIGINS` matches Vercel origins  
+- [ ] Vercel `VITE_BACKEND_URL` = Render base URL  
+- [ ] MultiLingo: only if the Render plan can handle ML + FFmpeg  
+
+---
+
+## Backend API
+
+| Method | Path | Auth | Notes |
+|--------|------|------|--------|
+| GET | `/auth/me` | Bearer JWT | Debug claims |
+| GET/POST | `/posts/` | Bearer JWT | Server-side posts (optional vs direct Supabase) |
+| POST | `/process` | — | MultiLingo upload (see `backend/app/multilingo/`) |
+
+Full reference when running locally: `/docs`.
+
+---
+
+## Security
+
+- Do **not** expose the Supabase **service role** key or JWT secret in the client or public repos.
+- Keep **`CORS_ORIGINS`** limited to real frontends (Vercel + dev).
+- Rotate keys if leaked; use separate Supabase projects for staging/production when possible.
 
 ---
 
 ## Further reading
 
-- **[`supabase/README.md`](supabase/README.md)** — migration order, Google OAuth, what lives in Postgres vs the FastAPI path.
-- **Supabase docs**: [Auth](https://supabase.com/docs/guides/auth), [RLS](https://supabase.com/docs/guides/auth/row-level-security), [Realtime](https://supabase.com/docs/guides/realtime).
+- [`supabase/README.md`](supabase/README.md) — migration order, OAuth, RLS notes  
+- [Supabase Auth](https://supabase.com/docs/guides/auth) · [RLS](https://supabase.com/docs/guides/auth/row-level-security) · [Realtime](https://supabase.com/docs/guides/realtime)
 
 ---
 
 ## License
 
-Add a `LICENSE` file if you plan to open-source or distribute the project.
+Add a `LICENSE` file if you distribute the project.
